@@ -1,3 +1,5 @@
 streamlit
 what3words
+st-gsheets-connection
+pandas
 requests
