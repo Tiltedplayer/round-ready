@@ -6,7 +6,7 @@ import requests
 import what3words
 
 # --- CONFIGURATION ---
-API_KEY = "YOUR_W3W_API_KEY" 
+API_KEY = "XMDPVNNL" 
 geocoder = what3words.Geocoder(API_KEY)
 DATA_FILE = "farm_library.json"
 
