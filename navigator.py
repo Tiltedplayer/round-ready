@@ -33,7 +33,7 @@ def save_data(new_row):
 def get_coords(input_string):
     """Handles short links, long links, and raw coordinates."""
     # 1. Check for raw lat,lng numbers
-    raw_match = re.search(r"(-?\d+\.\d+ Titan),\s*(-?\d+\.\d+)", input_string)
+    raw_match = re.search(r"(-?\d+\.\d+),\s*(-?\d+\.\d+)", input_string)
     if raw_match:
         return float(raw_match.group(1)), float(raw_match.group(2))
     
