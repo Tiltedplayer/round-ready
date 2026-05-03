@@ -23,78 +23,73 @@ def save_to_library(name, w3w, lat, lng, note):
     with open(DATA_FILE, "w") as f:
         json.dump(lib, f)
 
-def extract_coords_from_url(url):
-    """Expands short links and pulls lat/lng from the resulting long URL."""
-    try:
-        # If it's a short link, follow the redirect to get the long URL
-        if "maps.app.goo.gl" in url or "goo.gl/maps" in url:
-            response = requests.get(url, allow_redirects=True, timeout=5)
-            url = response.url
-        
-        # Look for the @lat,lng pattern
-        regex = r"@(-?\d+\.\d+),(-?\d+\.\d+)"
-        match = re.search(regex, url)
-        if match:
-            return float(match.group(1)), float(match.group(2))
-            
-        # Fallback for links that use 'll=' instead of '@'
-        ll_regex = r"ll=(-?\d+\.\d+),(-?\d+\.\d+)"
-        ll_match = re.search(ll_regex, url)
-        if ll_match:
-            return float(ll_match.group(1)), float(ll_match.group(2))
-            
-    except Exception as e:
-        st.error(f"Error reading link: {e}")
+def get_coords(input_string):
+    """Smarter coordinate finder for short links, long links, or raw numbers."""
+    # 1. Check if it's just raw coordinates (e.g., 53.2,-1.4)
+    raw_match = re.search(r"(-?\d+\.\d+),\s*(-?\d+\.\d+)", input_string)
+    if raw_match:
+        return float(raw_match.group(1)), float(raw_match.group(2))
+    
+    # 2. If it's a short maps.app.goo.gl link, we have to 'unmask' it
+    if "maps.app.goo.gl" in input_string or "goo.gl/maps" in input_string:
+        try:
+            response = requests.get(input_string, allow_redirects=True, timeout=5)
+            input_string = response.url # This is now the LONG version
+        except:
+            return None, None
+
+    # 3. Look for the @lat,lng pattern in the long URL
+    long_match = re.search(r"@(-?\d+\.\d+),(-?\d+\.\d+)", input_string)
+    if long_match:
+        return float(long_match.group(1)), float(long_match.group(2))
+    
     return None, None
 
 # --- APP INTERFACE ---
-st.set_page_config(page_title="Round Ready", page_icon="📦", layout="wide")
+st.set_page_config(page_title="Round Ready", page_icon="📦")
 
 # --- SIDEBAR SEARCH ---
 with st.sidebar:
     st.header("🔎 Farm Library")
     library = load_library()
-    search_term = st.text_input("Find Farm:").lower()
+    search_term = st.text_input("Search Farm Name:").lower()
     
     if search_term:
         results = {k: v for k, v in library.items() if search_term in k}
         if results:
             for name, info in results.items():
                 st.subheader(name.title())
-                st.write(f"📍 {info['w3w']}")
                 st.info(f"💡 {info['note']}")
-                nav_url = f"https://www.google.com/maps/dir/?api=1&destination={info['lat']},{info['lng']}&travelmode=driving&dir_action=navigate"
-                st.link_button(f"NAVIGATE TO {name.upper()}", nav_url)
+                nav_url = f"google.navigation:q={info['lat']},{info['lng']}"
+                st.link_button(f"🚀 GO TO {name.upper()}", nav_url, use_container_width=True)
                 st.divider()
 
 # --- MAIN PANEL ---
 st.title("📦 Round Ready")
+
 tab1, tab2 = st.tabs(["Quick Search", "Add New Farm"])
 
 with tab1:
-    st.subheader("Fast Launch")
-    w3w_input = st.text_input("Enter 3 words:").strip().lower()
-    
-    if st.button("🚀 GO TO GATE"):
+    w3w_input = st.text_input("Enter 3 words (e.g. filled.count.soap):").strip().lower()
+    if st.button("START NAVIGATION", use_container_width=True):
         try:
             res = geocoder.convert_to_coordinates(w3w_input)
             lat, lng = res['coordinates']['lat'], res['coordinates']['lng']
-            nav_url = f"https://www.google.com/maps/dir/?api=1&destination={lat},{lng}&travelmode=driving&dir_action=navigate"
-            st.link_button("OPEN GPS", nav_url)
+            st.link_button("Open Locked GPS", f"google.navigation:q={lat},{lng}")
         except:
-            st.error("API Limit reached. Use the 'Add New Farm' tab for this one!")
+            st.error("API Error. Use 'Add New Farm' to save this spot manually.")
 
 with tab2:
     st.subheader("Save a Cheat")
     new_name = st.text_input("Farm/House Name:")
     new_w3w = st.text_input("What3Words (Optional):")
-    location_input = st.text_input("Paste Google Maps Link (Short or Long):")
+    location_input = st.text_input("Paste Google Maps Link (Short or Long) OR raw coordinates:")
     new_note = st.text_input("Delivery Note (e.g. 'Gate code 1234'):")
     
-    if st.button("💾 SAVE TO MY ROUND"):
-        lat, lng = extract_coords_from_url(location_input)
+    if st.button("💾 SAVE TO MY ROUND", use_container_width=True):
+        lat, lng = get_coords(location_input)
         if lat and lng and new_name:
             save_to_library(new_name, new_w3w, lat, lng, new_note)
-            st.success(f"Successfully saved {new_name}!")
+            st.success(f"Saved {new_name}! Check the sidebar search.")
         else:
             st.error("Could not find coordinates. Make sure you dropped a pin in Google Maps first!")
