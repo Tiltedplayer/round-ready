@@ -50,17 +50,8 @@ def extract_coords_from_url(url):
 # --- APP INTERFACE ---
 st.set_page_config(page_title="Round Ready", page_icon="📦", layout="wide")
 
-# Custom CSS to make buttons bigger for mobile thumbs
-st.markdown("""
-    <style>
-    div.stButton > button:first-child {
-        height: 3em;
-        width: 100%;
-        font-size: 20px;
-        font-weight: bold;
-    }
-    </style>""", unsafe_allow_headers=True)
-
+# Custom CSS to make buttons bigger for mobile thumbs (Condensed for Python 3.14)
+st.markdown("<style>div.stButton > button:first-child { height: 3em; width: 100%; font-size: 20px; font-weight: bold; }</style>", unsafe_allow_headers=True)
 # --- SIDEBAR SEARCH ---
 with st.sidebar:
     st.header("🔎 Farm Library")
